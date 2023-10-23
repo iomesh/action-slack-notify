@@ -1,2 +1,2 @@
 build-and-push:
-	./scripts/build-and-push.sh ghcr.io/rtcamp/action-slack-notify:v2.2.0
+	./scripts/build-and-push.sh registry.smtx.io/iomesh-backup/action-slack-notify:v2.2.1
