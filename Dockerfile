@@ -19,6 +19,7 @@ RUN go build -a -installsuffix cgo -ldflags '-w  -extldflags "-static"' -o /go/b
 FROM alpine@sha256:ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d
 
 COPY --from=builder /go/bin/slack-notify /usr/bin/slack-notify
+COPY ./constraints.txt /build/constraints.txt
 
 ENV VAULT_VERSION 1.0.2
 
@@ -31,7 +32,7 @@ RUN apk update \
 	python \
 	py2-pip \
 	rsync && \
-	pip install shyaml && \
+	PIP_CONSTRAINT=/build/constraints.txt pip install shyaml && \
 	rm -rf /var/cache/apk/*
 
 # Setup Vault
