@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -24,6 +25,7 @@ const (
 	EnvHostName       = "HOST_NAME"
 	EnvMinimal        = "MSG_MINIMAL"
 	EnvSlackLinkNames = "SLACK_LINK_NAMES"
+	EnvRetry          = "RETRY"
 )
 
 type Webhook struct {
@@ -67,6 +69,19 @@ func main() {
 	}
 	if strings.HasPrefix(os.Getenv("GITHUB_WORKFLOW"), ".github") {
 		os.Setenv("GITHUB_WORKFLOW", "Link to action run")
+	}
+
+	retryNum := 0
+	retry := os.Getenv(EnvRetry)
+
+	if len(retry) != 0 {
+		num, err := strconv.Atoi(retry)
+		if err != nil || num < 0 {
+			fmt.Fprintln(os.Stderr, "Retry num is invalid")
+			os.Exit(1)
+		}
+
+		retryNum = num
 	}
 
 	long_sha := os.Getenv("GITHUB_SHA")
@@ -139,7 +154,8 @@ func main() {
 				Title: "Ref",
 				Value: os.Getenv("GITHUB_REF"),
 				Short: true,
-			}, {
+			},
+			{
 				Title: "Event",
 				Value: os.Getenv("GITHUB_EVENT_NAME"),
 				Short: true,
@@ -211,10 +227,15 @@ func main() {
 		},
 	}
 
-	if err := send(endpoint, msg); err != nil {
-		fmt.Fprintf(os.Stderr, "Error sending message: %s\n", err)
-		os.Exit(2)
+	for i := 0; i < retryNum+1; i++ {
+		if err := send(endpoint, msg); err != nil {
+			fmt.Fprintf(os.Stderr, "Error sending message: %s\n", err)
+		} else {
+			return
+		}
 	}
+
+	os.Exit(2)
 }
 
 func envOr(name, def string) string {
